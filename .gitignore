@@ -218,3 +218,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# -------------------
+# ASSIGNMENT SPECIFIC
+# -------------------
+
+# for reference in GitHub: this folder holds the raw JSON/HTML data
+data/
