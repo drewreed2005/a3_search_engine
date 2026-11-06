@@ -14,13 +14,19 @@ WRITE_MODE = "w"
 WRITE_BYTES_MODE = "wb"
 PARTIAL_INDEX_ENCODING = "utf-8"
 LEXICON_ENCODING = "utf-8"
+PRESERVE_UNICODE = False
 
 TERM_KEY = "term"
 POSTINGS_KEY = "postings"
+OFFSET_KEY = "offset"
+LENGTH_KEY = "length"
+DOCUMENT_FREQUENCY_KEY = "df"
 
 NEWLINE = "\n"
 START_BRACE = "{"
 END_BRACE = "}"
+NO_SPACE_COMMA = ","
+NO_SPACE_COLON = ":"
 # (postings file is bin; using bytes)
 START_BRACKET_BYTE = b"["
 END_BRACKET_BYTE = b"]"
@@ -75,8 +81,8 @@ def write_partial_index(inverted_index: InvertedIndex,
             json.dump(
                 {TERM_KEY: term, POSTINGS_KEY: inverted_index[term]},
                 file,
-                ensure_ascii = False,       # preserving unicode terms
-                separators=(",", ":")       # overwriting usual whitespaced separators
+                ensure_ascii = PRESERVE_UNICODE,            # preserving unicode terms
+                separators=(NO_SPACE_COMMA, NO_SPACE_COLON)
             )
             file.write(NEWLINE)
 
@@ -157,21 +163,6 @@ def _advance_merge_heap(heap: list[HeapEntry], partial_files: list[TextIO],
         )
 
 
-def _write_lexicon_entry(lexicon_file: TextIO, term: str, offset: int,
-        length: int, document_frequency: int, is_first_entry: bool) -> None:
-    """
-    Writes one term's metadata to the final lexicon at the open file location.
-    
-    Args:
-        lexicon_file (TextIO): open lexicon output file
-        term (str): the indexed term
-        offset (int): the starting byte position in the postings file
-        length (int): number of bytes occupied by this term's postings list
-        document_frequency (int): number of documents containing the term
-        is_first_entry (bool): if this is the first lexicon entry (special)
-    """
-
-
 def _iter_merged_postings(partial_files: list[TextIO],
         heap: list[HeapEntry]) -> Iterator[tuple[str, Posting]]:
     """
@@ -198,6 +189,39 @@ def _iter_merged_postings(partial_files: list[TextIO],
         # advancing this file after its current record is consumed
         # (moving on to its next line of term info)
         _advance_merge_heap(heap, partial_files, file_index)
+
+
+def _write_lexicon_entry(lexicon_file: TextIO, term: str, offset: int,
+        length: int, document_frequency: int, is_first_entry: bool) -> None:
+    """
+    Writes one term's metadata to the final lexicon at the open file location.
+    
+    Args:
+        lexicon_file (TextIO): open lexicon output file
+        term (str): the indexed term
+        offset (int): the starting byte position in the postings file
+        length (int): number of bytes occupied by this term's postings list
+        document_frequency (int): number of documents containing the term
+        is_first_entry (bool): if this is the first lexicon entry (special)
+    """
+    # adding a comma only if this is not the first entry
+    if not is_first_entry:
+        lexicon_file.write(NO_SPACE_COMMA)
+    
+    # serializing term key in lexicon JSON file
+    json.dump(term, lexicon_file, ensure_ascii = PRESERVE_UNICODE)
+    lexicon_file.write(NO_SPACE_COLON)
+    
+    # serializing postings file information
+    json.dump(
+        {
+            OFFSET_KEY: offset,
+            LENGTH_KEY: length,
+            DOCUMENT_FREQUENCY_KEY: document_frequency
+        },
+        lexicon_file,
+        separators = (NO_SPACE_COMMA, NO_SPACE_COLON)
+    )
 
 
 def _write_final_index(merged_postings: Iterator[tuple[str, Posting]],
