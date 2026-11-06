@@ -176,6 +176,26 @@ def _iter_merged_postings(
         _advance_merge_heap(heap, partial_files, file_index)
 
 
+def _write_final_index(merged_postings: Iterator[tuple[str, Posting]],
+        lexicon_path: Path, postings_path: Path) -> int:
+    """
+    Writes sorted merged postings and their metadata to the final index.
+
+    Args:
+        merged_postings (Iterator[tuple[str, Posting]]): ordered iterator
+            stream of term-posting pairs
+        lexicon_path: destination for final term metadata
+        postings_path: destination for final postings data
+
+    Returns:
+        int: the number of distinct terms written
+    """
+    
+    # making the lexicon and postings destination paths safely, if necessary
+    lexicon_path.parent.mkdir(parents = True, exist_ok = True)
+    postings_path.parent.mkdir(parents = True, exist_ok = True)
+
+
 def merge_partial_indexes(partial_paths: list[Path], lexicon_path: Path,
     postings_path: Path) -> int:
     """
@@ -204,6 +224,13 @@ def merge_partial_indexes(partial_paths: list[Path], lexicon_path: Path,
         
         # merging postings from each of the partial index files
         merged_postings = _iter_merged_postings(partial_files, heap)
+        
+        # writing the final index at target paths using the merged postings
+        return _write_final_index(
+            merged_postings,
+            lexicon_path,
+            postings_path
+        )
     
     finally:
         for file in partial_files:
