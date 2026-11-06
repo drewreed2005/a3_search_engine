@@ -8,12 +8,23 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, TextIO
 
+# start of constants
 READ_MODE = "r"
 WRITE_MODE = "w"
+WRITE_BYTES_MODE = "wb"
 PARTIAL_INDEX_ENCODING = "utf-8"
+LEXICON_ENCODING = "utf-8"
+
 TERM_KEY = "term"
 POSTINGS_KEY = "postings"
+
 NEWLINE = "\n"
+START_BRACE = "{"
+END_BRACE = "}"
+# (postings file is bin; using bytes)
+START_BRACKET_BYTE = b"["
+END_BRACKET_BYTE = b"]"
+COMMA_BYTE = b","
 
 # (creating type aliases for readability; reasoning mirrors builder.py)
 Posting = tuple[int, int, int]
@@ -146,10 +157,23 @@ def _advance_merge_heap(heap: list[HeapEntry], partial_files: list[TextIO],
         )
 
 
-def _iter_merged_postings(
-    partial_files: list[TextIO],
-    heap: list[HeapEntry]
-) -> Iterator[tuple[str, Posting]]:
+def _write_lexicon_entry(lexicon_file: TextIO, term: str, offset: int,
+        length: int, document_frequency: int, is_first_entry: bool) -> None:
+    """
+    Writes one term's metadata to the final lexicon at the open file location.
+    
+    Args:
+        lexicon_file (TextIO): open lexicon output file
+        term (str): the indexed term
+        offset (int): the starting byte position in the postings file
+        length (int): number of bytes occupied by this term's postings list
+        document_frequency (int): number of documents containing the term
+        is_first_entry (bool): if this is the first lexicon entry (special)
+    """
+
+
+def _iter_merged_postings(partial_files: list[TextIO],
+        heap: list[HeapEntry]) -> Iterator[tuple[str, Posting]]:
     """
     Yields individual postings in term and document ID order, grouped naturally
     by the heap structure.
@@ -194,6 +218,58 @@ def _write_final_index(merged_postings: Iterator[tuple[str, Posting]],
     # making the lexicon and postings destination paths safely, if necessary
     lexicon_path.parent.mkdir(parents = True, exist_ok = True)
     postings_path.parent.mkdir(parents = True, exist_ok = True)
+    
+    # preparing to iterate terms
+    unique_term_count = 0
+    current_term: str | None = None
+    current_offset = 0              # starting position of the term's postings
+    current_df = 0                  # number of postings written for this term
+    first_posting = True            # used for comma formatting
+    
+    # opening the output files to write
+    with (
+        postings_path.open(WRITE_BYTES_MODE) as postings_file,
+        lexicon_path.open(WRITE_MODE, encoding = LEXICON_ENCODING) as lexicon_file
+    ):
+        lexicon_file.write(START_BRACE)
+        
+        # iterating each term and associated posting list
+        # (note that merged_postings is an iterator; file is written over time)
+        for term, posting in merged_postings:
+            # if the term is a new term and the current term isn't None (initial),
+            # the previous postings list is complete
+            if term != current_term:
+                # closing the previous posting list and writing to the lexicon
+                # if the current term is not None (indicating initial iteration)
+                if current_term is not None:
+                    postings_file.write(END_BRACKET_BYTE)
+            
+                # beginning a new postings list at the current byte position
+                postings_file.write(START_BRACKET_BYTE)
+        
+            # writing the current posting (leading with a comma if necessary)
+            if not first_posting:
+                postings_file.write(COMMA_BYTE)
+            
+            # posting is encoded as compactly as possible
+            
+            # noting the additional posting for this term
+            first_posting = False
+            current_df += 1
+        
+        # finalizing the last term after the postings iterator is exhausted
+        if current_term is not None:
+            # writing final bracket for postings
+            postings_file.write(END_BRACKET_BYTE)
+            
+            # noting byte length for final lexicon entry
+            
+            # writing final entry
+        
+        # closing with final brace
+        lexicon_file.write(END_BRACE)
+    
+    return unique_term_count
 
 
 def merge_partial_indexes(partial_paths: list[Path], lexicon_path: Path,
@@ -226,11 +302,7 @@ def merge_partial_indexes(partial_paths: list[Path], lexicon_path: Path,
         merged_postings = _iter_merged_postings(partial_files, heap)
         
         # writing the final index at target paths using the merged postings
-        return _write_final_index(
-            merged_postings,
-            lexicon_path,
-            postings_path
-        )
+        return _write_final_index(merged_postings, lexicon_path, postings_path)
     
     finally:
         for file in partial_files:
