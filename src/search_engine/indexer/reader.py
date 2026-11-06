@@ -5,6 +5,7 @@ reader.py - provides dataset traversal and webpage document reading functionalit
 import json
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
 from search_engine.indexer.document import Document
@@ -69,6 +70,33 @@ def normalize_url(url: str) -> str:
     )
 
 
+def _validate_json_format(json_data: Any, file_path: Path) -> None:
+    """
+    Validates the format of the loaded JSON data to ensure it contains
+    expected fields for indexing
+
+    Args:
+        json_data (Any): the loaded JSON data to be validated
+        file_path (Path): the file path from which the data was receievd
+    
+    Raises:
+        TypeError: indicates JSON field contained an invalid type of data
+        ValueError: indicates missing required fields
+    """
+    # validating data
+    if not isinstance(json_data, dict):
+        raise TypeError(f"Non-JSON data loaded from {file_path}")
+    
+    # validating the existence/data in each field
+    for field in REQUIRED_DATA_FIELDS:
+        # ensuring the required field can be found
+        if field not in json_data:
+            raise ValueError(f"Missing required field \"{field}\" in {file_path}")
+        # ensuring the field data is a string
+        if not isinstance(json_data[field]):
+            raise TypeError(f"Non-string data from field \"{field}\" in {file_path}")
+
+
 def read_document(doc_id: int, file_path: Path) -> Document:
     """
     Reads a JSON file and constructs a Document instance from its data.
@@ -81,7 +109,6 @@ def read_document(doc_id: int, file_path: Path) -> Document:
         Document: document populated with processed JSON data
     
     Raises:
-        TypeError: indicates JSOn field contained an invalid type of data
         ValueError: indicates missing required fields
         json.JSONDecodeError: indicates that the file contains invalid JSON
         OSError: indicates that the given file path cannot be accessed
@@ -90,18 +117,10 @@ def read_document(doc_id: int, file_path: Path) -> Document:
     # loading document data
     with file_path.open(READ_MODE, encoding = DOCUMENT_ENCODING) as file:
         data = json.load(file)
-    # validating data
-    if not isinstance(data, dict):
-        raise TypeError(f"Non-JSON data loaded from {file_path}")
     
-    # validating the existence/data in each field
-    for field in REQUIRED_DATA_FIELDS:
-        # ensuring the required field can be found
-        if field not in data:
-            raise ValueError(f"Missing required field \"{field}\" in {file_path}")
-        # ensuring the field data is a string
-        if not isinstance(data[field]):
-            raise TypeError(f"Non-string data from field \"{field}\" in {file_path}")
+    # performing multiple validation steps on JSON data format
+    # (note: may raise TypeError or ValueError)
+    _validate_json_format(data, file_path)
     
     # ensuring the document has a valid found URL
     url = data[URL_FIELD]
