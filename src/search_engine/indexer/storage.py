@@ -89,7 +89,7 @@ def _read_next_record(file: TextIO) -> dict[str, Any] | None:
     # reading one line (a term's worth of information due to our formatting)
     line = file.readline()
     
-    # returning None if the file is exhausted
+    # returning None if the file is exhausted/empty
     if not line:
         return None
     
@@ -107,12 +107,15 @@ def _initialize_merge_heap(partial_files: list[TextIO]) -> list[HeapEntry]:
     Returns:
         list[HeapEntry]: min-heap containing the first records from each file
     """
+    # heap is represented here as a list of HeapEntry;
+    # python heapq is used to enforce actual behavior
     heap: list[HeapEntry] = []
     
-    # reading the first record from each of the partial files into the heap
     for file_index, file in enumerate(partial_files):
+        # reading the first record from each of the partial files into the heap
         record = _read_next_record(file)
         
+        # if None, it means the file is empty (not even a first term exists)
         if record is not None:
             # using Python standard library heapq for min-heap algorithm
             heapq.heappush(
@@ -133,7 +136,14 @@ def _advance_merge_heap(heap: list[HeapEntry], partial_files: list[TextIO],
         partial_files (list[TextIO]): open partial index files
         file_index (int): Index of the file whose record was consumed.
     """
-    # should probably just use _read_next_record idk yet
+    # reading the next term record from the partial index at the given index
+    record = _read_next_record(partial_files[file_index])
+    
+    # pushing to the heap if the file is not exhausted
+    if record is not None:
+        heapq.heappush(
+            heap, (record[TERM_KEY], file_index), record[POSTINGS_KEY]
+        )
 
 
 def _iter_merged_postings(
