@@ -123,6 +123,19 @@ def _initialize_merge_heap(partial_files: list[TextIO]) -> list[HeapEntry]:
     return heap
 
 
+def _advance_merge_heap(heap: list[HeapEntry], partial_files: list[TextIO],
+        file_index: int) -> None:
+    """
+    Reads the next record from a consumed partial index into the heap.
+
+    Args:
+        heap (list[HeapEntry]): the active merge heap
+        partial_files (list[TextIO]): open partial index files
+        file_index (int): Index of the file whose record was consumed.
+    """
+    # should probably just use _read_next_record idk yet
+
+
 def _iter_merged_postings(
     partial_files: list[TextIO],
     heap: list[HeapEntry]
@@ -138,6 +151,19 @@ def _iter_merged_postings(
     Yields:
         tuple[str, Posting]: a term and one associated posting each iteration
     """
+    # merging while the heap is not empty
+    while heap:
+        # getting all relevant information from the "smallest" item in the heap
+        term, file_index, postings = heapq.heappop(heap)
+        
+        # streaming postings individually for memory efficiency
+        # (especially important for frequently recurring terms)
+        for posting in postings:
+            yield term, tuple(posting)
+
+        # advancing this file after its current record is consumed
+        # (moving on to its next line of term info)
+        _advance_merge_heap(heap, partial_files, file_index)
 
 
 def merge_partial_indexes(partial_paths: list[Path], lexicon_path: Path,
