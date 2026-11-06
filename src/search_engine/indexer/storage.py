@@ -4,7 +4,9 @@ storage.py - handles serialization and merging of inverted index data
 
 import json
 from pathlib import Path
+from typing import TextIO
 
+READ_MODE = "r"
 WRITE_MODE = "w"
 PARTIAL_INDEX_ENCODING = "utf-8"
 TERM_KEY = "term"
@@ -14,6 +16,8 @@ NEWLINE = "\n"
 # (creating type aliases for readability; reasoning mirrors builder.py)
 Posting = tuple[int, int, int]
 InvertedIndex = dict[str, list[Posting]]
+# heap entries in the merge logic contain term, source file index, and postings
+HeapEntry = tuple[str, int, list[Posting]]
 
 
 '''
@@ -63,11 +67,31 @@ def write_partial_index(inverted_index: InvertedIndex,
             )
             file.write(NEWLINE)
 
+# parial index JSON lines should look like this:
+'''
+{"term":"token1","postings":[[0,2,1],[4,9,0]]}
+{"term":"token2","postings":[[0,3,2],[2,3,1]]}
+'''
+
+
+def _initialize_merge_heap(partial_files: list[TextIO]) -> list[HeapEntry]:
+    """
+    Initializes the merge heap with the first record from each file.
+
+    Args:
+        partial_files (list[TextIO]): open partial index files
+
+    Returns:
+        list[HeapEntry]: min-heap containing the first records from each file
+    """
+    
+
 
 def merge_partial_indexes(partial_paths: list[Path], lexicon_path: Path,
     postings_path: Path) -> int:
     """
-    Merges sorted partial indexes into a final on-disk index.
+    Merges sorted partial indexes into a final on-disk index. Merge uses a heap
+    structure to enforce term ordering and ensure efficiency.
 
     Args:
         partial_paths (list[Path]): partial index files in creation order
@@ -77,3 +101,17 @@ def merge_partial_indexes(partial_paths: list[Path], lexicon_path: Path,
     Returns:
         int: number of distinct terms written in the final index
     """
+    # opening files to centralize resource management
+    partial_files = [
+        path.open(READ_MODE, encoding = PARTIAL_INDEX_ENCODING)
+        for path in partial_paths
+    ]
+    
+    # try/finally block ensures partial index files are always closed,
+    # even if an error is raised
+    try:
+        heap = _initialize_merge_heap(partial_files)
+    
+    finally:
+        for file in partial_files:
+            file.close()
