@@ -14,6 +14,7 @@ WRITE_MODE = "w"
 WRITE_BYTES_MODE = "wb"
 PARTIAL_INDEX_ENCODING = "utf-8"
 LEXICON_ENCODING = "utf-8"
+POSTINGS_ENCODING = "utf-8"
 PRESERVE_UNICODE = False
 
 TERM_KEY = "term"
@@ -70,7 +71,7 @@ def write_partial_index(inverted_index: InvertedIndex,
         output_path (Path): destination path of partial index
     """
     # creating the enclosing directory safely if it does not yet exist
-    output_path.parent.mkdir(parents = True)
+    output_path.parent.mkdir(parents = True, exist_ok = True)
     
     # opening the file to write safely with context manager
     with output_path.open(WRITE_MODE, encoding = PARTIAL_INDEX_ENCODING) as file:
@@ -159,7 +160,7 @@ def _advance_merge_heap(heap: list[HeapEntry], partial_files: list[TextIO],
     # pushing to the heap if the file is not exhausted
     if record is not None:
         heapq.heappush(
-            heap, (record[TERM_KEY], file_index), record[POSTINGS_KEY]
+            heap, (record[TERM_KEY], file_index, record[POSTINGS_KEY])
         )
 
 
@@ -248,7 +249,8 @@ def _write_final_index(merged_postings: Iterator[tuple[str, Posting]],
     current_term: str | None = None
     current_offset = 0              # starting position of the term's postings
     current_df = 0                  # number of postings written for this term
-    first_posting = True            # used for comma formatting
+    is_first_posting = True         # used for comma formatting
+    is_first_lexicon_entry = True   # also used for comma formatting
     
     # opening the output files to write
     with (
@@ -260,25 +262,48 @@ def _write_final_index(merged_postings: Iterator[tuple[str, Posting]],
         # iterating each term and associated posting list
         # (note that merged_postings is an iterator; file is written over time)
         for term, posting in merged_postings:
-            # if the term is a new term and the current term isn't None (initial),
-            # the previous postings list is complete
+            # if the term is a new term and the current term isn't None
+            # (initial), the previous postings list is complete
             if term != current_term:
                 # closing the previous posting list and writing to the lexicon
-                # if the current term is not None (indicating initial iteration)
+                # if the current term isn't None (indicating initial iteration)
                 if current_term is not None:
                     postings_file.write(END_BRACKET_BYTE)
+                    
+                    # calculating byte length with stream position and offset
+                    byte_length = postings_file.tell() - current_offset
+                    _write_lexicon_entry(
+                        lexicon_file,
+                        current_term,
+                        current_offset,
+                        byte_length,
+                        current_df,
+                        is_first_lexicon_entry
+                    )
+                    is_first_lexicon_entry = False
             
                 # beginning a new postings list at the current byte position
+                current_term = term
+                current_offset = postings_file.tell()
+                current_df = 0
+                is_first_posting = True
+                unique_term_count += 1
+                
                 postings_file.write(START_BRACKET_BYTE)
         
             # writing the current posting (leading with a comma if necessary)
-            if not first_posting:
+            if not is_first_posting:
                 postings_file.write(COMMA_BYTE)
             
-            # posting is encoded as compactly as possible
+            postings_file.write(
+                # posting is encoded as compactly as possible
+                json.dumps(
+                    posting, separators = (NO_SPACE_COMMA, NO_SPACE_COLON)
+                ).encode(POSTINGS_ENCODING)
+            )
             
             # noting the additional posting for this term
-            first_posting = False
+            is_first_posting = False
             current_df += 1
         
         # finalizing the last term after the postings iterator is exhausted
@@ -286,9 +311,17 @@ def _write_final_index(merged_postings: Iterator[tuple[str, Posting]],
             # writing final bracket for postings
             postings_file.write(END_BRACKET_BYTE)
             
-            # noting byte length for final lexicon entry
-            
             # writing final entry
+            byte_length = postings_file.tell() - current_offset
+            _write_lexicon_entry(
+                lexicon_file,
+                current_term,
+                current_offset,
+                byte_length,
+                current_df,
+                is_first_lexicon_entry
+            )
+            is_first_lexicon_entry = False
         
         # closing with final brace
         lexicon_file.write(END_BRACE)
