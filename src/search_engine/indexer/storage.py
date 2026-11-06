@@ -4,6 +4,7 @@ storage.py - handles serialization and merging of inverted index data
 
 import heapq
 import json
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, TextIO
 
@@ -122,6 +123,23 @@ def _initialize_merge_heap(partial_files: list[TextIO]) -> list[HeapEntry]:
     return heap
 
 
+def _iter_merged_postings(
+    partial_files: list[TextIO],
+    heap: list[HeapEntry]
+) -> Iterator[tuple[str, Posting]]:
+    """
+    Yields individual postings in term and document ID order, grouped naturally
+    by the heap structure.
+
+    Args:
+        partial_files (list[TextIO]): open partial index files
+        heap (list[HeapEntry]): an (initialized) merge heap
+
+    Yields:
+        tuple[str, Posting]: a term and one associated posting each iteration
+    """
+
+
 def merge_partial_indexes(partial_paths: list[Path], lexicon_path: Path,
     postings_path: Path) -> int:
     """
@@ -145,7 +163,11 @@ def merge_partial_indexes(partial_paths: list[Path], lexicon_path: Path,
     # try/finally block ensures partial index files are always closed,
     # even if an error is raised
     try:
+        # initializing the heap with the first terms from the partial indexes
         heap = _initialize_merge_heap(partial_files)
+        
+        # merging postings from each of the partial index files
+        merged_postings = _iter_merged_postings(partial_files, heap)
     
     finally:
         for file in partial_files:
