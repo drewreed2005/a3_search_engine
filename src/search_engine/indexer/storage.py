@@ -74,6 +74,7 @@ def write_partial_index(inverted_index: InvertedIndex,
 {"term":"token2","postings":[[0,3,2],[2,3,1]]}
 '''
 
+
 def _read_next_record(file: TextIO) -> dict[str, Any] | None:
     """
     Reads the next term record from an open partial index file.
@@ -84,6 +85,15 @@ def _read_next_record(file: TextIO) -> dict[str, Any] | None:
     Returns:
         dict[str, Any] | None: parsed record or None if the file is exhausted
     """
+    # reading one line (a term's worth of information due to our formatting)
+    line = file.readline()
+    
+    # returning None if the file is exhausted
+    if not line:
+        return None
+    
+    # otherwise, returning the data interpreted as a standard Python dict
+    return json.loads(line)
 
 
 def _initialize_merge_heap(partial_files: list[TextIO]) -> list[HeapEntry]:
