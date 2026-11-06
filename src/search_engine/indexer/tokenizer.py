@@ -18,7 +18,7 @@ from nltk.stem import PorterStemmer
 # underscores), taking into account non-ASCII letters and digits as well
 # (Python "re" module is unicode aware, see
 #  https://learnbyexample.github.io/py_regular_expressions/unicode.html)
-TOKEN_PATTERN = re.compile(r"[^W_]+")
+TOKEN_PATTERN = re.compile(r"[^\W_]+")
 # each piece:
 # • r"..." = raw string indicator to clarify pattern expression
 # • [...] = denoting that a pool of characters will be matched
@@ -34,9 +34,10 @@ TOKEN_PATTERN = re.compile(r"[^W_]+")
 # reusing one stemmer so that a new one isn't constructed every token
 _STEMMER = PorterStemmer()
 
+
 def tokenize(text: str) -> Iterator[str]:
     """
-    Extracts normalized tokens from the given text string.
+    Extracts normalized, stemmed tokens from the given text string.
 
     Args:
         text (str): text to be tokenized
@@ -44,7 +45,12 @@ def tokenize(text: str) -> Iterator[str]:
     Yields:
         str: lowercase, stemmed tokens in sequential order
     """
-    
+    for match in TOKEN_PATTERN.finditer(text):
+        token = match.group().lower()
+        
+        # all tokens are stemmed when tokenized, so keep in mind queries will
+        # need to be stemmed when provided as well
+        yield _STEMMER.stem(token)
 
 
 def count_terms(text: str) -> Counter[str]:
