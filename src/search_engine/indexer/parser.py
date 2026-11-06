@@ -26,3 +26,31 @@ class ParsedContent:
     
     text: str
     important_text: str
+
+
+def is_important_text(text_node: str) -> bool:
+    """
+    Returns true if a given text node belongs to an important HTML element,
+    according to IMPORTANT_TAGS.
+
+    Args:
+        text_node (str): a BeautifulSoup text node
+
+    Returns:
+        bool: True if the node belongs to an important element; False otherwise
+    """
+    
+
+
+def parse_html(html_content: str) -> ParsedContent:
+    """
+    Extracts normal and important text from HTML webpage data and returns it in
+    the form of a ParsedContent data object.
+
+    Args:
+        html_content (str): raw HTML content from a webpage document
+
+    Returns:
+        ParsedContent: data object containing normal and important parsed text
+    """
+    
