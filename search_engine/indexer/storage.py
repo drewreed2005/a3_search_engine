@@ -8,6 +8,8 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, TextIO
 
+from search_engine.indexer.builder import InvertedIndex, Posting
+
 # start of constants
 READ_MODE = "r"
 WRITE_MODE = "w"
@@ -33,9 +35,6 @@ START_BRACKET_BYTE = b"["
 END_BRACKET_BYTE = b"]"
 COMMA_BYTE = b","
 
-# (creating type aliases for readability; reasoning mirrors builder.py)
-Posting = tuple[int, int, int]
-InvertedIndex = dict[str, list[Posting]]
 # heap entries in the merge logic contain term, source file index, and postings
 HeapEntry = tuple[str, int, list[Posting]]
 
