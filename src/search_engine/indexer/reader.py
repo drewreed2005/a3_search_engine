@@ -93,7 +93,7 @@ def _validate_json_format(json_data: Any, file_path: Path) -> None:
         if field not in json_data:
             raise ValueError(f"Missing required field \"{field}\" in {file_path}")
         # ensuring the field data is a string
-        if not isinstance(json_data[field]):
+        if not isinstance(json_data[field], str):
             raise TypeError(f"Non-string data from field \"{field}\" in {file_path}")
 
 
@@ -147,3 +147,11 @@ def iter_documents(data_dir: Path) -> Iterator[Document]:
     Yields:
         Document: processed Document instance representations of JSON data
     """
+    
+    # getting the sorted list of document paths with traversal function
+    document_paths = discover_documents(data_dir)
+    
+    # allowing enumeration define unique document IDs
+    for doc_id, file_path in enumerate(document_paths):
+        yield read_document(doc_id, file_path)
+    # (implemented as an iterator to ease memory use)
