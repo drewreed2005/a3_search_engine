@@ -5,11 +5,11 @@ parser.py - extracts normal and important text from webpage HTML
 # just like in Assignment 2, we're using BeautifulSoup
 from dataclasses import dataclass
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 
 LXML_PARSER = "lxml"
 # text within these tags will be considered important
-IMPORTANT_TAGS = frozenset(["b", "strong", "h1", "h2", "h3"])
+IMPORTANT_TAGS = frozenset(["b", "strong", "title", "h1", "h2", "h3"])
 # text within these tags won't be considered at all
 NON_TEXT_TAGS = ("script", "style", "meta", "base")
 
@@ -22,7 +22,7 @@ class ParsedContent:
     Attributes:
         text: all extracted webpage text
         important_text: a subset of text contained in impoortant HTML elements
-                        (bold tags or heading tags)
+                        (bold, title, and heading tags)
     """
     
     text: str
@@ -69,4 +69,24 @@ def parse_html(html_content: str) -> ParsedContent:
     text_segments: list[str] = []
     important_segments: list[str] = []
     
-    # parsing all remaining content
+    # parsing all remaining content by traversing text nodes directly
+    # (prevents nested important elements from duplicating of normal text collection)
+    for text_node in soup.find_all(string = True):
+        # skipping HTML comments detected as readable text
+        if isinstance(text_node, Comment):
+            continue
+        # if not a comment, we'll actually read it
+        segment = str(text_node).strip()
+        
+        # ignoring empty/whitespace-only nodes
+        if not segment:
+            continue
+        
+        text_segments.append(segment)
+        if is_important_text(text_node):
+            important_segments.append(segment)
+    
+    return ParsedContent(
+        text = " ".join(text_segments),
+        important_text = " ".join(important_segments)
+    )
