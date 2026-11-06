@@ -10,6 +10,16 @@ from search_engine.indexer.document import Document
 
 JSON_FILE_PATTERN = "*.json"
 
+READ_MODE = "r"
+# i heard from someone after Assignment 2 that "utf-8-sig" is more reliable encoding
+# (unclear whether or not it makes any meaningful difference in this situation)
+DOCUMENT_ENCODING = "utf-8-sig"
+# we rely on any document we read having this information
+URL_FIELD = "url"
+CONTENT_FIELD = "content"
+ENCODING_FIELD = "encoding"
+REQUIRED_DATA_FIELDS = (URL_FIELD, CONTENT_FIELD, ENCODING_FIELD)
+
 
 def discover_documents(data_dir: Path) -> list[Path]:
     """
@@ -48,8 +58,42 @@ def read_document(doc_id: int, file_path: Path) -> Document:
 
     Returns:
         Document: document populated with processed JSON data
+    
+    Raises:
+        TypeError: indicates JSOn field contained an invalid type of data
+        ValueError: indicates missing required fields
+        json.JSONDecodeError: indicates that the file contains invalid JSON
+        OSError: indicates that the given file path cannot be accessed
     """
     
+    # loading document data
+    with file_path.open(READ_MODE, encoding = DOCUMENT_ENCODING) as file:
+        data = json.load(file)
+    # validating data
+    if not isinstance(data, dict):
+        raise TypeError(f"Non-JSON data loaded from {file_path}")
+    
+    # validating the existence/data in each field
+    for field in REQUIRED_DATA_FIELDS:
+        # ensuring the required field can be found
+        if field not in data:
+            raise ValueError(f"Missing required field \"{field}\" in {file_path}")
+        # ensuring the field data is a string
+        if not isinstance(data[field]):
+            raise TypeError(f"Non-string data from field \"{field}\" in {file_path}")
+    
+    # ensuring the document has a valid found URL
+    url = data[URL_FIELD]
+    if not url:
+        raise ValueError(f"Empty URL in {file_path}")
+    
+    return Document(
+        doc_id = doc_id,
+        url = url,
+        content = data[CONTENT_FIELD],
+        encoding = data[ENCODING_FIELD],
+        source_path = file_path
+    )
 
 
 def iter_documents(data_dir: Path) -> Iterator[Document]:
