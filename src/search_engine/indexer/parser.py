@@ -5,7 +5,7 @@ parser.py - extracts normal and important text from webpage HTML
 # just like in Assignment 2, we're using BeautifulSoup
 from dataclasses import dataclass
 
-from bs4 import BeautifulSoup, Comment
+from bs4 import BeautifulSoup, Comment, NavigableString
 
 LXML_PARSER = "lxml"
 # text within these tags will be considered important
@@ -29,7 +29,7 @@ class ParsedContent:
     important_text: str
 
 
-def is_important_text(text_node: str) -> bool:
+def is_important_text(text_node: NavigableString) -> bool:
     """
     Returns true if a given text node belongs to an important HTML element,
     according to IMPORTANT_TAGS.
@@ -41,6 +41,13 @@ def is_important_text(text_node: str) -> bool:
         bool: True if the node belongs to an important element; False otherwise
     """
     
+    # checking all levels of depth within an important element
+    for ancestor in text_node.parent.parents:
+        if ancestor.name in IMPORTANT_TAGS:
+            return True
+    
+    # also checking the immediate parent
+    return text_node.parent.name in IMPORTANT_TAGS
 
 
 def parse_html(html_content: str) -> ParsedContent:
