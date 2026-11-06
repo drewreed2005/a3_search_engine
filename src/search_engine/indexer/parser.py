@@ -7,10 +7,11 @@ from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
 
+LXML_PARSER = "lxml"
 # text within these tags will be considered important
 IMPORTANT_TAGS = frozenset(["b", "strong", "h1", "h2", "h3"])
 # text within these tags won't be considered at all
-SKIP_TAGS = ("script", "style", "meta", "base")
+NON_TEXT_TAGS = ("script", "style", "meta", "base")
 
 
 @dataclass
@@ -54,3 +55,18 @@ def parse_html(html_content: str) -> ParsedContent:
         ParsedContent: data object containing normal and important parsed text
     """
     
+    # if the content is empty, no need to parse
+    if not html_content:
+        return ParsedContent(text = "", important_text = "")
+    
+    # usming lxml to handle malformed HTML like in Assignment 2
+    soup = BeautifulSoup(html_content, LXML_PARSER)
+    
+    # removing content that should not contribute
+    for tag in soup.find_all(NON_TEXT_TAGS):
+        tag.decompose()
+    
+    text_segments: list[str] = []
+    important_segments: list[str] = []
+    
+    # parsing all remaining content
