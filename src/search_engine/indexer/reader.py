@@ -5,10 +5,13 @@ reader.py - provides dataset traversal and webpage document reading functionalit
 import json
 from collections.abc import Iterator
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 from search_engine.indexer.document import Document
 
 JSON_FILE_PATTERN = "*.json"
+
+EMPTY = ""
 
 READ_MODE = "r"
 # i heard from someone after Assignment 2 that "utf-8-sig" is more reliable encoding
@@ -46,6 +49,24 @@ def discover_documents(data_dir: Path) -> list[Path]:
     # using Path's recursive glob (rglob) to recursively search for JSON files;
     # sorting list output to ensure determinism of ID assignment
     return sorted(data_dir.rglob(JSON_FILE_PATTERN))
+
+
+def normalize_url(url: str) -> str:
+    """
+    Defragments the given webpage URL to normalize all index URLs.
+
+    Args:
+        url (str): original webpage URL beign normalized
+
+    Returns:
+        str: defragmented version of the given URL
+    """
+    
+    # recombining the split URL
+    return urlunsplit(
+        # splitting the URL into its components so that the fragment can be removed
+        urlsplit(url)._replace(fragment = EMPTY)
+    )
 
 
 def read_document(doc_id: int, file_path: Path) -> Document:
@@ -87,9 +108,10 @@ def read_document(doc_id: int, file_path: Path) -> Document:
     if not url:
         raise ValueError(f"Empty URL in {file_path}")
     
+    # document contains defragmented (normalized) URL
     return Document(
         doc_id = doc_id,
-        url = url,
+        url = normalize_url(url),
         content = data[CONTENT_FIELD],
         encoding = data[ENCODING_FIELD],
         source_path = file_path
