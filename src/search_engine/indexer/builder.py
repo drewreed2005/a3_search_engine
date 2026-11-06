@@ -46,14 +46,17 @@ def _get_invalid_frequency_term(term_frequencies: Counter,
     return None
 
 
-def add_document_to_index(document: Document,
-        inverted_index: InvertedIndex) -> None:
+def _get_valid_term_frequencies(document: Document) -> tuple[Counter[str], Counter[str]]:
     """
-    Processes one webpage document and adds its postings to the inverted index.
+    Parses the given document and validates term frequencies associated with
+    its textual data. Returns valid term frequencies and important frequencies.
 
     Args:
         document (Document): webpage document to process
-        inverted_index (InvertedIndex): in-memory inverted index to update
+
+    Returns:
+        Counter[str]: first Counter in tuple is total term frequencies
+        Counter[str]: second Counter in tuple is important term frequencies
     
     Raises:
         ValueError: indicates that invalid term frequencies were found in
@@ -75,4 +78,41 @@ def add_document_to_index(document: Document,
             f"term \"{invalid}\" in document with ID {document.doc_id}"
         )
     
+    # returning validated frequencies
+    return term_frequencies, important_frequencies
+
+
+def add_document_to_index(document: Document,
+        inverted_index: InvertedIndex) -> None:
+    """
+    Processes one webpage document and adds its postings to the inverted index.
+
+    Args:
+        document (Document): webpage document to process
+        inverted_index (InvertedIndex): in-memory inverted index to update
     
+    Raises:
+        ValueError: indicates that invalid term frequencies were found or that
+            posting document ID order was violated
+    """
+    # getting and validating term frequencies (raises ValueError if invalid)
+    term_frequencies, important_frequencies = \
+        _get_valid_term_frequencies(document)
+    
+    # creating a posting for each term in this document
+    for term, total_tf in term_frequencies.items():
+        # if there is no important instance of the term, it has frequency 0
+        important_tf = important_frequencies.get(term, 0)
+        
+        # getting existing list of postings, which may be empty
+        postings = inverted_index.setdefault(term, [])
+        
+        # ensuring that sorted postings have been maintained for merging
+        if postings and postings[-1][0] >= document.doc_id:
+            raise ValueError(
+                f"Received document {document.doc_id} after document "
+                f"{postings[-1][0]} for term '{term}'. "
+                f"(Documents should be added in strictly increasing order of ID)"
+            )
+        
+        postings.append((document.doc_id, total_tf, important_tf))
