@@ -2,9 +2,10 @@
 storage.py - handles serialization and merging of inverted index data
 '''
 
+import heapq
 import json
 from pathlib import Path
-from typing import TextIO
+from typing import Any, TextIO
 
 READ_MODE = "r"
 WRITE_MODE = "w"
@@ -73,6 +74,17 @@ def write_partial_index(inverted_index: InvertedIndex,
 {"term":"token2","postings":[[0,3,2],[2,3,1]]}
 '''
 
+def _read_next_record(file: TextIO) -> dict[str, Any] | None:
+    """
+    Reads the next term record from an open partial index file.
+
+    Args:
+        file (TextIO): the open file positioned at the next record
+
+    Returns:
+        dict[str, Any] | None: parsed record or None if the file is exhausted
+    """
+
 
 def _initialize_merge_heap(partial_files: list[TextIO]) -> list[HeapEntry]:
     """
@@ -84,7 +96,20 @@ def _initialize_merge_heap(partial_files: list[TextIO]) -> list[HeapEntry]:
     Returns:
         list[HeapEntry]: min-heap containing the first records from each file
     """
+    heap: list[HeapEntry] = []
     
+    # reading the first record from each of the partial files into the heap
+    for file_index, file in enumerate(partial_files):
+        record = _read_next_record(file)
+        
+        if record is not None:
+            # using Python standard library heapq for min-heap algorithm
+            heapq.heappush(
+                heap, (record[TERM_KEY], file_index, record[POSTINGS_KEY])
+            )
+    
+    # returning initialized heap
+    return heap
 
 
 def merge_partial_indexes(partial_paths: list[Path], lexicon_path: Path,
