@@ -96,8 +96,9 @@ def add_document_to_index(document: Document,
             posting document ID order was violated
     """
     # getting and validating term frequencies (raises ValueError if invalid)
-    term_frequencies, important_frequencies = \
+    term_frequencies, important_frequencies = (
         _get_valid_term_frequencies(document)
+    )
     
     # creating a posting for each term in this document
     for term, total_tf in term_frequencies.items():
