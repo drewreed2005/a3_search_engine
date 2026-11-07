@@ -17,7 +17,7 @@ PARTIAL_INDEX_DIRECTORY_NAME = "partials"
 # lambda for path formatting
 get_partial_index_path: Path = (
     lambda partial_index_directory, file_number:
-        partial_index_directory / "partial_{file_number:05d}.jsonl"
+        partial_index_directory / f"partial_{file_number:05d}.jsonl"
 )
 # partial index paths have 5 integers of space for representation
 # (like originally conceptualized when designing storage)
@@ -30,7 +30,8 @@ UNIQUE_TERMS_KEY = "unique_terms"
 
 
 def build_index(data_directory: Path, index_directory: Path,
-        documents_per_partial: int = DEFAULT_DOCUMENTS_PER_PARTIAL) -> dict[str, int]:
+        documents_per_partial: int = DEFAULT_DOCUMENTS_PER_PARTIAL,
+        should_log: bool = False) -> dict[str, int]:
     """
     Builds the complete file system-based inverted index from the corpus.
     Processes documnets sequentually in memory until reaching the set document
@@ -49,10 +50,12 @@ def build_index(data_directory: Path, index_directory: Path,
             partial indexes created, and unique terms in the final index
     
     Raises:
-            ValueError: if documents_per_partial is not positive
-            FileNotFoundError: if the data directory does not exist
-            NotADirectoryError: if the data path is not a directory
-            JSONDecodeError: if a webpage JSON file cannot be decoded
+        ValueError: documents per partial index limit is not positive or
+            document indexing became malformed in some way
+        FileNotFoundError: if the data directory does not exist
+        NotADirectoryError: if the data path is not a directory
+        JSONDecodeError: if a webpage JSON file cannot be decoded
+        OSError: if document access was denied
     """
     
     # nonpositive document processing limit prevents progress; invalid
@@ -84,8 +87,16 @@ def build_index(data_directory: Path, index_directory: Path,
         documents_indexed += 1
         documents_since_flush += 1
         
+        # optional print for debugging
+        if should_log and documents_indexed % 1000 == 0:
+            print(f"{documents_indexed} documents have been indexed.")
+        
         # flushing if the limit has been reached
         if documents_since_flush >= documents_per_partial:
+            # optional print for debugging
+            if should_log:
+                print(f"Starting flush of {documents_per_partial} documents...")
+            
             # creating the partial index path from template
             partial_path = get_partial_index_path(
                 partial_directory, len(partial_paths)
@@ -95,6 +106,8 @@ def build_index(data_directory: Path, index_directory: Path,
             partial_paths.append(partial_path)
             
             # releasing the postings accumulated over time
+            if should_log:
+                print(f"Flush complete. (Total flushes: {len(partial_paths)})")
             inverted_index.clear()
             documents_since_flush = 0
     

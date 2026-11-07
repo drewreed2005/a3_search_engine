@@ -3,15 +3,23 @@ parser.py - extracts normal and important text from webpage HTML
 '''
 
 # just like in Assignment 2, we're using BeautifulSoup
+import warnings
 from dataclasses import dataclass
 
-from bs4 import BeautifulSoup, Comment, NavigableString
+from bs4 import BeautifulSoup, Comment, NavigableString, XMLParsedAsHTMLWarning
 
 LXML_PARSER = "lxml"
 # text within these tags will be considered important
 IMPORTANT_TAGS = frozenset(["b", "strong", "title", "h1", "h2", "h3"])
 # text within these tags won't be considered at all
 NON_TEXT_TAGS = ("script", "style", "meta", "base")
+
+# ignoring XMLParsedAsHTML warning; switching to XML parsing could affect
+# how malformed HTML is interpreted
+warnings.filterwarnings(
+    "ignore",
+    category=XMLParsedAsHTMLWarning
+)
 
 
 @dataclass

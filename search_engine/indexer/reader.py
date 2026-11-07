@@ -110,7 +110,7 @@ def read_document(doc_id: int, file_path: Path) -> Document:
     
     Raises:
         ValueError: indicates missing required fields
-        json.JSONDecodeError: indicates that the file contains invalid JSON
+        JSONDecodeError: indicates that the file contains invalid JSON
         OSError: indicates that the given file path cannot be accessed
     """
     
@@ -146,6 +146,11 @@ def iter_documents(data_dir: Path) -> Iterator[Document]:
 
     Yields:
         Document: processed Document instance representations of JSON data
+    
+    Raises:
+        ValueError: indicates missing required fields
+        JSONDecodeError: indicates that the file contains invalid JSON
+        OSError: indicates that the given file path cannot be accessed
     """
     
     # getting the sorted list of document paths with traversal function
