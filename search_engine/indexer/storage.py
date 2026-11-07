@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, TextIO
 
 from search_engine.indexer.builder import InvertedIndex, Posting
+from search_engine.indexer.document import Document
 
 # start of constants
 READ_MODE = "r"
@@ -24,6 +25,8 @@ POSTINGS_KEY = "postings"
 OFFSET_KEY = "offset"
 LENGTH_KEY = "length"
 DOCUMENT_FREQUENCY_KEY = "df"
+DOCUMENT_ID_KEY = "doc_id"
+URL_KEY = "url"
 
 NEWLINE = "\n"
 START_BRACE = "{"
@@ -363,3 +366,21 @@ def merge_partial_indexes(partial_paths: list[Path], lexicon_path: Path,
     finally:
         for file in partial_files:
             file.close()
+
+
+def write_document_metadata_record(document: Document,
+        output_file: TextIO) -> None:
+    """
+    Writes one document's ID-to-URL mapping as a JSONL record. (Each document
+    occupies one line so that metadata can be written incrementally without
+    retaining the mapping in memory.)
+
+    Args:
+        document (Document): the document whose mapping is being written
+        output_file (TextIO): open document mapping file
+    """
+    # writing the doc_id and url record straight to the open file
+    output_file.write(json.dumps(
+        {DOCUMENT_ID_KEY: document.doc_id, URL_KEY: document.url},
+        ensure_ascii = PRESERVE_UNICODE
+    ) + NEWLINE)
