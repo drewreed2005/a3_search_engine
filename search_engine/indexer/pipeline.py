@@ -125,13 +125,22 @@ def build_index(data_directory: Path, index_directory: Path,
     
     # if final documents remain unflushed, flushing them
     if documents_since_flush > 0:
+        if should_log:
+            print(f"Starting final flush of {documents_since_flush} documents...")
+        
         partial_path = get_partial_index_path(
             partial_directory, len(partial_paths)
         )
         write_partial_index(inverted_index, partial_path)
         partial_paths.append(partial_path)
+        
+        if should_log:
+            print(f"Flush complete. (Total flushes: {len(partial_paths)})")
     
     # merging the sorted partial indexes into the final disk representation
+    if should_log:
+        print("Merging partial indexes...")
+    
     unique_terms = merge_partial_indexes(
         partial_paths,
         index_directory / LEXICON_FILE_NAME,

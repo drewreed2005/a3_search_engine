@@ -334,8 +334,8 @@ def _write_final_index(merged_postings: Iterator[tuple[str, Posting]],
 def merge_partial_indexes(partial_paths: list[Path], lexicon_path: Path,
     postings_path: Path) -> int:
     """
-    Merges sorted partial indexes into a final on-disk index. Merge uses a heap
-    structure to enforce term ordering and ensure efficiency.
+    Merges sorted partial indexes into a final on-disk index. Merge uses a min-
+    heap structure to enforce term ordering and ensure efficiency.
 
     Args:
         partial_paths (list[Path]): partial index files in creation order

@@ -6,7 +6,13 @@ parser.py - extracts normal and important text from webpage HTML
 import warnings
 from dataclasses import dataclass
 
-from bs4 import BeautifulSoup, Comment, NavigableString, XMLParsedAsHTMLWarning
+from bs4 import (
+    BeautifulSoup,
+    Comment,
+    MarkupResemblesLocatorWarning,
+    NavigableString,
+    XMLParsedAsHTMLWarning,
+)
 
 LXML_PARSER = "lxml"
 # text within these tags will be considered important
@@ -18,7 +24,12 @@ NON_TEXT_TAGS = ("script", "style", "meta", "base")
 # how malformed HTML is interpreted
 warnings.filterwarnings(
     "ignore",
-    category=XMLParsedAsHTMLWarning
+    category = XMLParsedAsHTMLWarning
+)
+# ignoring this other unnecessary warning
+warnings.filterwarnings(
+    "ignore",
+    category = MarkupResemblesLocatorWarning
 )
 
 
