@@ -6,12 +6,18 @@ from pathlib import Path
 
 from search_engine.indexer.builder import InvertedIndex, add_document_to_index
 from search_engine.indexer.reader import iter_documents
-from search_engine.indexer.storage import merge_partial_indexes, write_partial_index
+from search_engine.indexer.storage import (
+    merge_partial_indexes,
+    write_document_metadata_record,
+    write_partial_index,
+)
 
 # defining the number of documents processed per partial index
 DEFAULT_DOCUMENTS_PER_PARTIAL = 10000
-
 MIN_DOCUMENTS_PER_PARTIAL = 1
+
+WRITE_MODE = "w"
+DOCUMENTS_FILE_ENCODING = "utf-8"
 
 PARTIAL_INDEX_DIRECTORY_NAME = "partials"
 # lambda for path formatting
@@ -23,6 +29,7 @@ get_partial_index_path: Path = (
 # (like originally conceptualized when designing storage)
 LEXICON_FILE_NAME = "lexicon.json"
 POSTINGS_FILE_NAME = "postings.bin"
+DOCUMENTS_FILE_NAME = "documents.jsonl"
 
 DOCUMENTS_INDEXED_KEY = "documents_indexed"
 PARTIAL_INDEXES_KEY = "partial_indexes"
@@ -81,35 +88,40 @@ def build_index(data_directory: Path, index_directory: Path,
     documents_since_flush = 0
     
     # using iter_documents for sequential document ID order, memory efficiency
-    for document in iter_documents(data_directory):
-        # adding this document to the index
-        add_document_to_index(document, inverted_index)
-        documents_indexed += 1
-        documents_since_flush += 1
-        
-        # optional print for debugging
-        if should_log and documents_indexed % 1000 == 0:
-            print(f"{documents_indexed} documents have been indexed.")
-        
-        # flushing if the limit has been reached
-        if documents_since_flush >= documents_per_partial:
+    with (index_directory / DOCUMENTS_FILE_NAME).open(WRITE_MODE,
+            encoding = DOCUMENTS_FILE_ENCODING, newline="\n") as documents_file:
+        for document in iter_documents(data_directory):
+            # adding this document to the index
+            add_document_to_index(document, inverted_index)
+            # mapping document ID to URL
+            write_document_metadata_record(document, documents_file)
+            
+            documents_indexed += 1
+            documents_since_flush += 1
+            
             # optional print for debugging
-            if should_log:
-                print(f"Starting flush of {documents_per_partial} documents...")
+            if should_log and documents_indexed % 1000 == 0:
+                print(f"{documents_indexed} documents have been indexed.")
             
-            # creating the partial index path from template
-            partial_path = get_partial_index_path(
-                partial_directory, len(partial_paths)
-            )
-            # writing the partial index to the disk
-            write_partial_index(inverted_index, partial_path)
-            partial_paths.append(partial_path)
-            
-            # releasing the postings accumulated over time
-            if should_log:
-                print(f"Flush complete. (Total flushes: {len(partial_paths)})")
-            inverted_index.clear()
-            documents_since_flush = 0
+            # flushing if the limit has been reached
+            if documents_since_flush >= documents_per_partial:
+                # optional print for debugging
+                if should_log:
+                    print(f"Starting flush of {documents_per_partial} documents...")
+                
+                # creating the partial index path from template
+                partial_path = get_partial_index_path(
+                    partial_directory, len(partial_paths)
+                )
+                # writing the partial index to the disk
+                write_partial_index(inverted_index, partial_path)
+                partial_paths.append(partial_path)
+                
+                # releasing the postings accumulated over time
+                if should_log:
+                    print(f"Flush complete. (Total flushes: {len(partial_paths)})")
+                inverted_index.clear()
+                documents_since_flush = 0
     
     # if final documents remain unflushed, flushing them
     if documents_since_flush > 0:

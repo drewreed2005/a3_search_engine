@@ -5,6 +5,7 @@ build_index.py - runs the complete corpus indexing process and reports statistic
 from pathlib import Path
 
 from search_engine.indexer.pipeline import (
+    DOCUMENTS_FILE_NAME,
     DOCUMENTS_INDEXED_KEY,
     LEXICON_FILE_NAME,
     PARTIAL_INDEXES_KEY,
@@ -37,10 +38,14 @@ def main() -> None:
     results_summary = build_index(data_directory, index_directory)
     
     # measuring the sizes of final index files
+    final_index_files = [
+        index_directory / LEXICON_FILE_NAME,
+        index_directory / POSTINGS_FILE_NAME,
+        index_directory / DOCUMENTS_FILE_NAME
+    ]
     final_index_size_in_kb = (
-        (index_directory / LEXICON_FILE_NAME).stat().st_size
-        + (index_directory / POSTINGS_FILE_NAME).stat().st_size
-    ) / BYTES_PER_KILOBYTE
+        sum(path.stat().st_size for path in final_index_files) / BYTES_PER_KILOBYTE
+    )
     
     # printing measured metrics
     print("\nIndexing completed.")
