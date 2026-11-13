@@ -5,10 +5,15 @@ scripts/search.py - user-facing console search interface
 from pathlib import Path
 from typing import BinaryIO
 
+from search_engine.indexer.pipeline import (
+    DOCUMENTS_FILE_NAME,
+    LEXICON_FILE_NAME,
+    POSTINGS_FILE_NAME,
+)
 from search_engine.search.metadata import load_document_urls
 from search_engine.search.query import process_query
 from search_engine.search.ranking import RankedDocument, rank_documents
-from search_engine.search.retrieval import Lexicon, retrieve_documents
+from search_engine.search.retrieval import Lexicon, load_lexicon, retrieve_documents
 
 SearchResults = list[tuple[RankedDocument, str]]
 
@@ -90,7 +95,25 @@ def run_search(index_directory: Path, result_limit: int) -> None:
     Args:
         index_directory (Path): path of the directory containing index files
         result_limit (int): maximum search results displayed per search
+    
+    Raises:
+        ValueError: if needed metadata cannot be accessed for some reason
     """
+    lexicon_path = index_directory / LEXICON_FILE_NAME
+    postings_path = index_directory / POSTINGS_FILE_NAME
+    metadata_path = index_directory / DOCUMENTS_FILE_NAME
+    
+    lexicon = load_lexicon(lexicon_path)
+    document_urls = load_document_urls(metadata_path)
+    document_count = len(document_urls)
+    
+    if document_count == 0:
+        raise ValueError("The document metadata file contains no data.")
+    
+    # documenting index stats for transparency and because it's cool
+    print(f"Loaded {document_count:,} documents.")
+    print(f"Loaded {len(lexicon):,} indexed terms.")
+    print("Enter a search query. Use an empty query to quit.")
 
 
 def main() -> int:
