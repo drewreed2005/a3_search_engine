@@ -1,5 +1,5 @@
 '''
-build_index.py - runs the complete corpus indexing process and reports statistics
+scripts/build_index.py - runs the complete corpus indexing process and reports statistics
 '''
 
 import argparse
