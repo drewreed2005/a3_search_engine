@@ -34,13 +34,12 @@ from dataclasses import dataclass
 from math import log as ln
 
 from search_engine.indexer.builder import Posting
+from search_engine.indexer.storage import DOCUMENT_FREQUENCY_KEY
 from search_engine.search.retrieval import DocumentMatches, Lexicon
 
 # setting to 2.0 as described in the theoretical example above
 # (may be modified according to output later)
 DEFAULT_IMPORTANT_TERM_BOOST = 2.0
-
-DF_KEY = "df"
 
 # dataclass used to represent a document and its relevance score
 # (more likely overcomplicated good typing behavior because i love it)
@@ -123,7 +122,7 @@ def _score_document(postings_by_term: dict[str, Posting],
         query_tf = query_frequencies[term]
         
         # document frequency is already available
-        document_frequency = lexicon[term][DF_KEY]
+        document_frequency = lexicon[term][DOCUMENT_FREQUENCY_KEY]
         
         idf = _calculate_idf(document_count, document_frequency)
         weighted_tf = _calculate_weighted_tf(

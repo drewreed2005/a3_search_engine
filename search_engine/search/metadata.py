@@ -8,6 +8,8 @@ from pathlib import Path
 READ_MODE = "r"
 METADATA_ENCODING = "utf-8"
 
+from search_engine.indexer.storage import DOCUMENT_ID_KEY, URL_KEY
+
 
 def load_document_urls(metadata_path: Path) -> dict[int, str]:
     """
@@ -43,3 +45,27 @@ def load_document_urls(metadata_path: Path) -> dict[int, str]:
                 raise ValueError(
                     f"Invalid JSON on line {line_number} of {metadata_path}"
                 ) from error
+            
+            if not isinstance(record, dict):
+                raise ValueError(  # noqa: TRY004
+                    f"Expected a JSON obejct on line {line_number}"
+                )
+            
+            doc_id = record.get(DOCUMENT_ID_KEY)
+            url = record.get(URL_KEY)
+            
+            # validating document ID (bool is a subclass of int in Python)
+            if not isinstance(doc_id, int) or isinstance(doc_id, bool):
+                raise ValueError(f"Invalid document ID on line {line_number}")  # noqa: TRY004
+            if doc_id in document_urls:
+                raise ValueError(
+                    f"Duplicate document ID {doc_id} on line {line_number}"
+                )
+            # validating URL
+            if not isinstance(url, str) or not url:
+                raise ValueError(f"Invalid URL on line {line_number}")
+            
+            # we finally know for sure that it's valid
+            document_urls[doc_id] = url
+    
+    return document_urls
