@@ -29,6 +29,45 @@ ranking.py - functions for calculating TF-IDF scores and ordering results
 #       (allowing quantity of term occurrence in the original query to matter)
 
 
+from dataclasses import dataclass
+
+from search_engine.search.retrieval import DocumentMatches, Lexicon
+
+# setting to 2.0 as described in the theoretical example above
+# (may be modified according to output later)
+DEFAULT_IMPORTANT_TERM_BOOST = 2.0
+
+# dataclass used to represent a document and its relevance score
+# (more likely overcomplicated good typing behavior because i love it)
+@dataclass(frozen = True)
+class RankedDocument:
+    """Represents a retrieved document and its relevance score"""
+    doc_id: int
+    score: float
+
+
+def rank_documents(matches: DocumentMatches, query_terms: list[str],
+            lexicon: Lexicon, document_count: int,
+            important_term_boost: float = DEFAULT_IMPORTANT_TERM_BOOST
+        ) -> list[RankedDocument]:
+    """
+    Scores and ranks documents retrieved through Boolean AND search using the
+    sum of weighted TF-IDF contributions for all query terms. Results are
+    ordered by descending score, tiebroken by document ID.
+
+    Args:
+        matches (DocumentMatches): retrieved documents and their postings
+        query_terms (list[str]): normalized query terms, including duplicates
+        lexicon (Lexicon): loaded term metadata
+        document_count (int): total number of indexed documents
+        important_term_boost (float, optional): multiplier for important term
+            occurrences; defaults to 2.0 right now
+
+    Returns:
+        list[RankedDocument]: documents ordered from highest to lowest score
+    """
+
+
 
 # the document on milestone 2 describes using cosine similarlity computation
 # for ranking, which seems to involve measuring the angle between query and
