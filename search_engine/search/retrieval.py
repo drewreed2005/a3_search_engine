@@ -24,6 +24,9 @@ from search_engine.indexer.builder import Posting
 READ_MODE = "r"
 LEXICON_ENCODING = "utf-8"
 
+OFFSET_KEY = "offset"
+LENGTH_KEY = "length"
+
 
 # used for good type annotation, as i've done before
 class LexiconEntry(TypedDict):
@@ -51,6 +54,19 @@ def load_lexicon(lexicon_path: Path) -> Lexicon:
         return cast(Lexicon, json.load(file))
 
 
+def _decode_postings(raw_postings: bytes, term: str) -> list[Posting]:
+    """
+    Decodes and validates a serialized postings list.
+
+    Args:
+        raw_postings (bytes): JSON-encoded postings data
+        term (str): the term associated with the postings
+
+    Returns:
+        list[Posting]: decoded posting data (as tuples)
+    """
+
+
 def read_term_postings(term: str, lexicon: Lexicon,
         postings_file: BinaryIO) -> list[Posting]:
     """
@@ -64,4 +80,25 @@ def read_term_postings(term: str, lexicon: Lexicon,
     Returns:
         list[Posting]: postings for the given term, or an empty list if the
             the term does not exist in the lexicon
+    
+    Raises:
+        OSError: if requested byte range cannot be read
     """
+    # getting the current entry
+    entry = lexicon.get(term)
+    
+    if entry is None:
+        return []
+    
+    offset = entry[OFFSET_KEY]
+    length = entry[LENGTH_KEY]
+    
+    # offsets represent byte positions, so we must seek in binary mode data
+    postings_file.seek(offset)
+    raw_postings = postings_file.read(length)
+    
+    if len(raw_postings) != length:
+        raise OSError(f"Incomplete postings data for term: {term}")
+    
+    # decoding the found postings to return in proper form
+    return _decode_postings(raw_postings, term)
