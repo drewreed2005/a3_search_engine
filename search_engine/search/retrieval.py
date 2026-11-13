@@ -193,7 +193,7 @@ def _intersect_document_matches(matches: DocumentMatches, term: str,
     # reading postings for the given term
     postings = read_term_postings(term, lexicon, postings_file)
     
-    # sets make membership cehcks efficient without retaining another
+    # sets make membership checks efficient without retaining another
     # document ID-to-posting dictionary for the whole term
     term_document_ids = {posting[0] for posting in postings}
     
