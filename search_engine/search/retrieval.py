@@ -31,14 +31,17 @@ POSTING_FIELD_COUNT = 3
 OFFSET_KEY = "offset"
 LENGTH_KEY = "length"
 
-
 # used for good type annotation, as i've done before
 class LexiconEntry(TypedDict):
+    """Metadata identifying a term's postings record in the index"""
     offset: int
     length: int
     df: int
 
 Lexicon = dict[str, LexiconEntry]
+
+# maps matching document IDs to postings for each query term
+DocumentMatches = dict[int, dict[str, Posting]]
 
 
 def load_lexicon(lexicon_path: Path) -> Lexicon:
@@ -135,3 +138,20 @@ def read_term_postings(term: str, lexicon: Lexicon,
     
     # decoding the found postings to return in proper form
     return _decode_postings(raw_postings, term)
+
+
+def retrieve_documents(query_terms: list[str], lexicon: Lexicon,
+        postings_file: BinaryIO) -> DocumentMatches:
+    """
+    Retrieves documents containing every distinct query term (Boolean AND).
+    Postings are read from the disk one at a time.
+
+    Args:
+        query_terms (list[str]): normalized query terms
+        lexicon (Lexicon): loaded term metadata
+        postings_file (BinaryIO): open postings file in binary mode
+
+    Returns:
+        DocumentMatches: matching documents to query-term postings in ID order
+    """
+    
