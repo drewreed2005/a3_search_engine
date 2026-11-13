@@ -29,6 +29,7 @@ ranking.py - functions for calculating TF-IDF scores and ordering results
 #       (allowing quantity of term occurrence in the original query to matter)
 
 
+from collections import Counter
 from dataclasses import dataclass
 
 from search_engine.search.retrieval import DocumentMatches, Lexicon
@@ -65,8 +66,27 @@ def rank_documents(matches: DocumentMatches, query_terms: list[str],
 
     Returns:
         list[RankedDocument]: documents ordered from highest to lowest score
+    
+    Raises:
+        ValueError: if document_count or important_term_boost are invalid
     """
-
+    # basic invariant handling
+    if document_count <= 0:
+        raise ValueError(
+            f"Document count must be positive. (Currently {document_count}.)"
+        )
+    if important_term_boost < 1.0:
+        raise ValueError(
+            "Important term boost must be at least 1.0. "
+            f"(Currently {important_term_boost}.)"
+        )
+    
+    # empty input results in empty output
+    if not matches or not query_terms:
+        return []
+    
+    # considering frequencies of query terms as conceptualized before
+    query_frequencies = Counter(query_terms)
 
 
 # the document on milestone 2 describes using cosine similarlity computation
