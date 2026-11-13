@@ -2,6 +2,7 @@
 scripts/search.py - user-facing console search interface
 '''
 
+from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from typing import BinaryIO
 
@@ -19,9 +20,13 @@ SearchResults = list[tuple[RankedDocument, str]]
 
 # going along with the milestone 2 specification's expectation of 5 results
 DEFAULT_RESULT_LIMIT = 5
+DEFAULT_INDEX_DIRECTORY_NAME = "index"
 
 READ_BYTES_MODE = "rb"
 SEARCH_TAG = "Query: "
+
+INDEX_DIRECTORY_ARG = "--index-dir"
+RESULTS_LIMIT_ARG = "--results"
 
 
 def search_once(query: str, lexicon: Lexicon, postings_file: BinaryIO,
@@ -145,6 +150,38 @@ def run_search(index_directory: Path, result_limit: int) -> None:
                     result_limit
                 )
             )
+
+
+def parse_arguments() -> Namespace:
+    """
+    Parses command line arguments for the search engine program. The program
+    accepts --index-dir (allowing customization of the idnex directory path)
+    and --results (customizes the number of search results exposed).
+
+    Returns:
+        Namespace: the argument namespace
+    """
+    # defining the project root relative to this script file
+    project_root = Path(__file__).resolve().parents[1]
+    
+    parser = ArgumentParser(
+        description = "Search the indexed collection of webpages"
+    )
+    parser.add_argument(
+        INDEX_DIRECTORY_ARG,
+        type = Path,
+        default = project_root / DEFAULT_INDEX_DIRECTORY_NAME,
+        help = f"Directory containing {LEXICON_FILE_NAME}, "
+            f"{POSTINGS_FILE_NAME}, and {DOCUMENTS_FILE_NAME}"
+    )
+    parser.add_argument(
+        RESULTS_LIMIT_ARG,
+        type = int,
+        default = DEFAULT_RESULT_LIMIT,
+        help = "Maximum number of results to display per query"
+    )
+    
+    return parser.parse_args()
 
 
 def main() -> int:
