@@ -10,10 +10,15 @@ from search_engine.search.query import process_query
 from search_engine.search.ranking import RankedDocument, rank_documents
 from search_engine.search.retrieval import Lexicon, retrieve_documents
 
+SearchResults = list[tuple[RankedDocument, str]]
+
+# going along with the milestone 2 specification's expectation of 5 results
+DEFAULT_RESULT_LIMIT = 5
+
 
 def search_once(query: str, lexicon: Lexicon, postings_file: BinaryIO,
         document_urls: dict[int, str], document_count: int, 
-        result_limit: int) -> list[tuple[RankedDocument, str]]:
+        result_limit: int) -> SearchResults:
     """
     Processes one query and returns as many of the highest-ranked matching
     documents in order as allowed by the results limit and existing data.
@@ -43,7 +48,7 @@ def search_once(query: str, lexicon: Lexicon, postings_file: BinaryIO,
         matches, query_terms, lexicon, document_count
     )
     
-    results: list[tuple[RankedDocument, str]] = []
+    results: SearchResults = []
     
     # restricting the number of output documents by the result limit
     for ranked_document in ranked_documents[:result_limit]:
@@ -59,3 +64,35 @@ def search_once(query: str, lexicon: Lexicon, postings_file: BinaryIO,
         results.append((ranked_document, document_urls[doc_id]))
     
     return results
+
+
+def display_results(results: SearchResults) -> None:
+    """
+    Handles printing the ranked search results to the console.
+
+    Args:
+        results (SearchResults): the search results to be displayed
+    """
+
+
+def run_search(index_directory: Path, result_limit: int) -> None:
+    """
+    Loads the index and runs the search session in the console.
+
+    Args:
+        index_directory (Path): path of the directory containing index files
+        result_limit (int): maximum search results displayed per search
+    """
+
+
+def main() -> int:
+    """
+    Entry point for command line search engine program.
+
+    Returns:
+        int: run status code
+    """
+
+
+if __name__ == "__main__":
+    main()
