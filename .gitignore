@@ -233,6 +233,6 @@ data/raw/
 tests/
 
 # generated indexes should also not be considered by git
-index/
+index/*
 *.partial
 *.tmp
