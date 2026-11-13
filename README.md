@@ -5,6 +5,50 @@ NetID: reedas1@uci.edu
 Student ID: 94006807
 
 
+## Milestone 2
+
+### Implemented Functionality
+
+The current implementation extends the indexer with a console search engine interface. It retrieves and ranks webpage results using the disk-based inverted index.
+
+Implemented components include:
+
+- **Query processing**: Normalizes user queries using the same tokenization and Porter-stemming rules as the indexer.
+- **Document retrieval**: Retrieves documents containing all query terms using Boolean AND. Terms are processed in ascending document-frequency order to reduce the number of candidate documents during intersection.
+- **Disk-based postings access**: Loads the lexicon into memory and reads individual posting lists from `postings.bin` as needed, rather than loading the entire inverted index.
+- **Result ranking**: Calculates TF-IDF scores using term frequency, inverse document frequency, and an additional weight for occurrences in important text. (See formula in `ranking.py` documentation.)
+- **URL resolution**: Uses `documents.jsonl` to map retrieved document IDs to their corresponding URLs.
+- **Result presentation**: Displays ranked URLs and their scores in the console interface.
+
+The current ranking implementation uses weighted TF-IDF rather than cosine similarity, since we have not been instructed on exactly how to perform this yet. Further ranking improvements, including document-length normalization and handling duplicate URLs during indexing, are deferred to a later milestone.
+
+### Running the Search Interface
+
+Ensure that the index has been generated in `index/` (or some other specified index directory) before running the search interface.
+
+From the project root, run:
+
+```bash
+python3 -m scripts.search
+```
+
+To specify an alternative index directory, run:
+
+```bash
+python3 -m scripts.search --index-dir path/to/index
+```
+
+To provide a custom number of search results per query (e.g., 10), run:
+
+```bash
+python3 -m scripts.search --results 10
+```
+
+Enter a query when prompted. An empty query exits the program.
+
+The interface displays the retrieved results in ranked order, including their URLs and scores.
+
+
 ## Milestone 1
 
 ### Report
