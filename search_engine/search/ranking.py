@@ -76,6 +76,25 @@ def _calculate_idf(document_count: int, document_frequency: int) -> float:
     return ln(document_count / document_frequency)
 
 
+def _calculate_weighted_tf(tf: int, important_tf: int,
+        important_term_boost: float) -> float:
+    """
+    Calculates term frequency with additional weight for important text.
+
+    Args:
+        tf (int): total frequency of the term in a document
+        important_tf (int): frequency of the term within important text
+        important_term_boost (float): multiplier for important term occurrences
+
+    Returns:
+        float: adjusted term frequency
+    """
+    # performing TF_weighted(t, d) = TF(t, d) + (b - 1) x important_tf(t, d)
+    return tf + (important_term_boost - 1.0) * important_tf
+    # (- 1.0 is needed because the important term frequency is already being
+    #  added on top of its existing appearance within the normal terms)
+
+
 def _score_document(postings_by_term: dict[str, Posting],
         query_frequencies: Counter[str], lexicon: Lexicon, document_count: int,
         important_term_boost: float) -> float:
@@ -107,6 +126,9 @@ def _score_document(postings_by_term: dict[str, Posting],
         document_frequency = lexicon[term][DF_KEY]
         
         idf = _calculate_idf(document_count, document_frequency)
+        weighted_tf = _calculate_weighted_tf(
+            tf, important_tf, important_term_boost
+        )
 
 
 def rank_documents(matches: DocumentMatches, query_terms: list[str],
