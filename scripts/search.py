@@ -62,12 +62,12 @@ def search_once(query: str, lexicon: Lexicon, postings_file: BinaryIO,
         matches, query_terms, lexicon, document_count
     )
     
-    results: SearchResults = []
+    seen_urls: set[str] = set()
+    unique_results: SearchResults = []
     
     # restricting the number of output documents by the result limit
-    for ranked_document in ranked_documents[:result_limit]:
+    for ranked_document in ranked_documents:
         doc_id = ranked_document.doc_id
-        
         # basic check for result ID validity (must have a URL)
         if doc_id not in document_urls:
             raise ValueError(
@@ -75,9 +75,16 @@ def search_once(query: str, lexicon: Lexicon, postings_file: BinaryIO,
                 "but not in the document metadata"
             )
         
-        results.append((ranked_document, document_urls[doc_id]))
+        # verifying that this is a unique URL
+        url = document_urls[doc_id]
+        if url not in seen_urls:
+            seen_urls.add(url)
+            unique_results.append((ranked_document, url))
+        
+        if len(unique_results) >= result_limit:
+            break
     
-    return results
+    return unique_results
 
 
 def display_results(results: SearchResults) -> None:
@@ -209,7 +216,7 @@ def main() -> int:
     except (FileNotFoundError, ValueError) as error:
         print(f"Error: {error}", file = sys.stderr)
         return 1
-    
+
     return 0
 
 if __name__ == "__main__":
