@@ -24,6 +24,10 @@ from search_engine.indexer.builder import Posting
 READ_MODE = "r"
 LEXICON_ENCODING = "utf-8"
 
+# number of values in each serialized posting
+# (document ID, term frequency, and important term frequency)
+POSTING_FIELD_COUNT = 3
+
 OFFSET_KEY = "offset"
 LENGTH_KEY = "length"
 
@@ -64,7 +68,35 @@ def _decode_postings(raw_postings: bytes, term: str) -> list[Posting]:
 
     Returns:
         list[Posting]: decoded posting data (as tuples)
+    
+    Raises:
+        ValueError: if serialized postings data are malformed
     """
+    # parsing the JSON data from the binary data
+    parsed_postings = json.loads(raw_postings)
+    
+    # the postings list must take the form of a list when decoded
+    # or something is wrong with the format of the data
+    if not isinstance(parsed_postings, list):
+        raise ValueError(f"Invalid postings list for term: {term}")  # noqa: TRY004
+    
+    # preparing to retrieve all postting records
+    postings: list[Posting] = []
+    
+    for record in parsed_postings:
+        # validating the posting record data retrieved
+        if (
+            not isinstance(record, list)
+            or len(record) != POSTING_FIELD_COUNT
+            or not all(type(value) is int for value in record)
+        ):
+            raise ValueError(f"Invalid posting record for term: {term}")
+        
+        # copy of data from the record
+        doc_id, tf, important_tf = record
+        postings.append((doc_id, tf, important_tf))
+    
+    return postings
 
 
 def read_term_postings(term: str, lexicon: Lexicon,
@@ -83,6 +115,7 @@ def read_term_postings(term: str, lexicon: Lexicon,
     
     Raises:
         OSError: if requested byte range cannot be read
+        ValueError: if serialized postings data are malformed
     """
     # getting the current entry
     entry = lexicon.get(term)
