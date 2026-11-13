@@ -5,6 +5,9 @@ metadata.py - loads document metadata for resolving document IDs to URLs
 import json
 from pathlib import Path
 
+READ_MODE = "r"
+METADATA_ENCODING = "utf-8"
+
 
 def load_document_urls(metadata_path: Path) -> dict[int, str]:
     """
@@ -17,4 +20,26 @@ def load_document_urls(metadata_path: Path) -> dict[int, str]:
 
     Returns:
         dict[int, str]: a dictionary mapping each document ID to its URL
+    
+    Raises:
+        FileNotFoundError: if the metadata file does not exist
+        ValueError: if a document record is malformed
     """
+    document_urls: dict[int, str] = {}
+    
+    with metadata_path.open(READ_MODE,
+            encoding = METADATA_ENCODING) as metadata_file:
+        # iterating each line of JSON data and numbering for error printing
+        for line_number, line in enumerate(metadata_file, start = 1):
+            # ignoring any empty lines
+            if not line.strip():
+                continue
+            
+            # attempting to get the record data and handling error
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError as error:
+                # "from error" = this error is the consequence of "error"
+                raise ValueError(
+                    f"Invalid JSON on line {line_number} of {metadata_path}"
+                ) from error
