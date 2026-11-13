@@ -73,6 +73,14 @@ def display_results(results: SearchResults) -> None:
     Args:
         results (SearchResults): the search results to be displayed
     """
+    if not results:
+        print("No matching documents found.")
+        return
+    
+    # numeric rank from enumeration, since search result order is meaningful
+    for rank, (document, url) in enumerate(results, start = 1):
+        print(f"{rank}. {url}")
+        print(f"    Score: {document.score:.6f}")
 
 
 def run_search(index_directory: Path, result_limit: int) -> None:
