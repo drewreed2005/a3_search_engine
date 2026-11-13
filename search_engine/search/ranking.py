@@ -32,6 +32,7 @@ ranking.py - functions for calculating TF-IDF scores and ordering results
 from collections import Counter
 from dataclasses import dataclass
 
+from search_engine.indexer.builder import Posting
 from search_engine.search.retrieval import DocumentMatches, Lexicon
 
 # setting to 2.0 as described in the theoretical example above
@@ -45,6 +46,28 @@ class RankedDocument:
     """Represents a retrieved document and its relevance score"""
     doc_id: int
     score: float
+
+
+def _score_document(postings_by_term: dict[str, Posting],
+        query_frequencies: Counter[str], lexicon: Lexicon, document_count: int,
+        important_term_boost: float) -> float:
+    """
+    Calculates the total weighted TF-IDF score for one document.
+
+    Args:
+        postings_by_term (dict[str, Posting]): query-term postings associated
+            with the document
+        query_frequencies (Counter[str]): frequency of each term in the
+            original query
+        lexicon (Lexicon): loaded term metadata
+        document_count (int): total number of indexed documents
+        important_term_boost (float): multiplier for important term occurrences
+
+    Returns:
+        float: the sum of the document's query-term TF-IDF contributions
+    """
+    
+    score = 0.0
 
 
 def rank_documents(matches: DocumentMatches, query_terms: list[str],
