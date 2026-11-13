@@ -140,6 +140,21 @@ def read_term_postings(term: str, lexicon: Lexicon,
     return _decode_postings(raw_postings, term)
 
 
+def _get_query_terms_in_retrieval_order(query_terms: list[str],
+        lexicon: Lexicon) -> list[str]:
+    """
+    Removes duplicate terms and prioritizes terms with fewer postings.
+
+    Args:
+        query_terms (list[str]): normalized query terms
+        lexicon (Lexicon): loaded term metadata
+
+    Returns:
+        list[str]: distinct query terms ordered by document frequency
+    """
+    
+
+
 def retrieve_documents(query_terms: list[str], lexicon: Lexicon,
         postings_file: BinaryIO) -> DocumentMatches:
     """
@@ -154,4 +169,14 @@ def retrieve_documents(query_terms: list[str], lexicon: Lexicon,
     Returns:
         DocumentMatches: matching documents to query-term postings in ID order
     """
+    # if no terms are in the query, no pages to return
+    if not query_terms:
+        return {}
     
+    # missing term guarantees that an AND query cannot generate results
+    if any(term not in lexicon for term in query_terms):
+        return {}
+    
+    # using helper to remove duplicate terms and order by fewest postings
+    # (makes intersection work afterward less expensive; less to match)
+    ordered_terms = _get_query_terms_in_retrieval_order(query_terms, lexicon)
