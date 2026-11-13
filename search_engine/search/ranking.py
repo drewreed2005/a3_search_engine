@@ -31,6 +31,7 @@ ranking.py - functions for calculating TF-IDF scores and ordering results
 
 from collections import Counter
 from dataclasses import dataclass
+from math import log as ln
 
 from search_engine.indexer.builder import Posting
 from search_engine.search.retrieval import DocumentMatches, Lexicon
@@ -61,6 +62,18 @@ def _calculate_idf(document_count: int, document_frequency: int) -> float:
     Returns:
         float: inverse document frequency
     """
+    # more invariant checking that probably won't matter
+    if document_count <= 0:
+        raise ValueError(
+            f"Document count must be positive. (Currently {document_count}.)"
+        )
+    if not 0 < document_frequency <= document_count:
+        raise ValueError(
+            f"Invalid document frequency. (Currently {document_frequency}.)"
+        )
+    
+    # performing IDF(t) = ln(N / df(t))
+    return ln(document_count / document_frequency)
 
 
 def _score_document(postings_by_term: dict[str, Posting],
