@@ -190,6 +190,28 @@ def _intersect_document_matches(matches: DocumentMatches, term: str,
         lexicon (Lexicon): loaded term metadata
         postings_file (BinaryIO): open postings file in binary mode
     """
+    # reading postings for the given term
+    postings = read_term_postings(term, lexicon, postings_file)
+    
+    # sets make membership cehcks efficient without retaining another
+    # document ID-to-posting dictionary for the whole term
+    term_document_ids = {posting[0] for posting in postings}
+    
+    # removing documents without the current query term
+    unmatched_ids = [
+        doc_id
+        for doc_id in matches
+        if doc_id not in term_document_ids
+    ]
+    for doc_id in unmatched_ids:
+        del matches[doc_id]
+    
+    # retaining complete postings for every document that's still matching
+    for posting in postings:
+        doc_id = posting[0]
+        
+        if doc_id in matches:
+            matches[doc_id][term] = posting
 
 
 def retrieve_documents(query_terms: list[str], lexicon: Lexicon,
