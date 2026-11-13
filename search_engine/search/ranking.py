@@ -117,7 +117,7 @@ def _score_document(postings_by_term: dict[str, Posting],
     score = 0.0
     
     for term, posting in postings_by_term.items():
-        doc_id, tf, important_tf = posting
+        _, tf, important_tf = posting
         
         # query term frequency allows repeated terms to add weight as described
         query_tf = query_frequencies[term]
@@ -129,6 +129,12 @@ def _score_document(postings_by_term: dict[str, Posting],
         weighted_tf = _calculate_weighted_tf(
             tf, important_tf, important_term_boost
         )
+        
+        # performing Score(d, q) = ∑_t∈q(TF_weighted(t, d) x IDF(t))
+        # (where the summation ∑ is represented by this for loop)
+        score += query_tf * weighted_tf * idf
+    
+    return score
 
 
 def rank_documents(matches: DocumentMatches, query_terms: list[str],
@@ -171,6 +177,28 @@ def rank_documents(matches: DocumentMatches, query_terms: list[str],
     
     # considering frequencies of query terms as conceptualized before
     query_frequencies = Counter(query_terms)
+    
+    # ranking all documents within matches
+    ranked_documents = [
+        RankedDocument(
+            doc_id = doc_id,
+            score = _score_document(
+                postings_by_term,
+                query_frequencies,
+                lexicon,
+                document_count,
+                important_term_boost
+            )
+        )
+        for doc_id, postings_by_term in matches.items()
+    ]
+    
+    # in order from highest score to lowest, since higher score = more relevant
+    # (resolving ties with document ID, as specified)
+    return sorted(
+        ranked_documents,
+        key = lambda result: (-result.score, result.doc_id)
+    )
 
 
 # the document on milestone 2 describes using cosine similarlity computation
