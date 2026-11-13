@@ -177,6 +177,21 @@ def _index_postings_by_document(postings: list[Posting]) -> dict[int, Posting]:
     }
 
 
+def _intersect_document_matches(matches: DocumentMatches, term: str,
+        lexicon: Lexicon, postings_file: BinaryIO) -> None:
+    """
+    Restricts existing matches to documents containing another query term.
+    Matching documents retain their posting for the additional term; documents
+    that don't contain it are removed.
+
+    Args:
+        matches (DocumentMatches): current matched documents and their postings
+        term (str): additional normalzied query term
+        lexicon (Lexicon): loaded term metadata
+        postings_file (BinaryIO): open postings file in binary mode
+    """
+
+
 def retrieve_documents(query_terms: list[str], lexicon: Lexicon,
         postings_file: BinaryIO) -> DocumentMatches:
     """
@@ -215,3 +230,17 @@ def retrieve_documents(query_terms: list[str], lexicon: Lexicon,
             first_postings
         ).items()
     }
+    
+    # progressively intersecting candidates with each remaining term
+    for term in ordered_terms[1:]:
+        _intersect_document_matches(
+            matches, term, lexicon, postings_file
+        )
+        
+        # if intersection ever results in no matches, return nothing
+        if not matches:
+            return {}
+    
+    # sorting so that output is deterministic regardless of the operation set
+    # (mirroring that same concern with determinism as in milestone 1)
+    return dict(sorted(matches.items()))
