@@ -2,6 +2,7 @@
 scripts/search.py - user-facing console search interface
 '''
 
+import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from typing import BinaryIO
@@ -191,7 +192,25 @@ def main() -> int:
     Returns:
         int: run status code
     """
-
+    args = parse_arguments()
+    
+    # printing basic invalid argument condition to standard error
+    if args.results <= 0:
+        print(
+            f"Error: {RESULTS_LIMIT_ARG} must be a positive integer "
+            f"(got {args.results})", file = sys.stderr
+        )
+        return 1
+    
+    try:
+        run_search(args.index_dir, args.results)
+    
+    # catching all anticipated error types that could occur during a run
+    except (FileNotFoundError, ValueError) as error:
+        print(f"Error: {error}", file = sys.stderr)
+        return 1
+    
+    return 0
 
 if __name__ == "__main__":
     main()
