@@ -30,6 +30,7 @@ POSTING_FIELD_COUNT = 3
 
 OFFSET_KEY = "offset"
 LENGTH_KEY = "length"
+DF_KEY = "df"
 
 # used for good type annotation, as i've done before
 class LexiconEntry(TypedDict):
@@ -152,7 +153,28 @@ def _get_query_terms_in_retrieval_order(query_terms: list[str],
     Returns:
         list[str]: distinct query terms ordered by document frequency
     """
+    # removing duplicate terms
+    unique_terms = list(dict.fromkeys(query_terms))
     
+    # returning in order of term rarity; fewer matches = less intersection work
+    return sorted(unique_terms, key = lambda term: lexicon[term][DF_KEY])
+
+
+def _index_postings_by_document(postings: list[Posting]) -> dict[int, Posting]:
+    """
+    Creates a document ID lookup for one term's postings.
+
+    Args:
+        postings (list[Posting]): posting tuples associated with a single term
+
+    Returns:
+        dict[int, Posting]: mapping of document IDs to postings
+    """
+    return {
+        doc_id: posting
+        for posting in postings
+        for doc_id in [posting[0]]
+    }
 
 
 def retrieve_documents(query_terms: list[str], lexicon: Lexicon,
@@ -180,3 +202,16 @@ def retrieve_documents(query_terms: list[str], lexicon: Lexicon,
     # using helper to remove duplicate terms and order by fewest postings
     # (makes intersection work afterward less expensive; less to match)
     ordered_terms = _get_query_terms_in_retrieval_order(query_terms, lexicon)
+    
+    # initializing candidates with rarest query term
+    first_term = ordered_terms[0]
+    first_postings = read_term_postings(first_term, lexicon, postings_file)
+    if not first_postings:
+        return {}
+    
+    matches: DocumentMatches = {
+        doc_id: {first_term: posting}
+        for doc_id, posting in _index_postings_by_document(
+            first_postings
+        ).items()
+    }
