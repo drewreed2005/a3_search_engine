@@ -15,8 +15,14 @@ retrieval.py - functions to read postings from disk and perform Boolean AND
 
 # question remains if stopwords should be filtered out here (maybe?)
 
+import json
 from pathlib import Path
-from typing import TypedDict
+from typing import BinaryIO, TypedDict, cast
+
+from search_engine.indexer.builder import Posting
+
+READ_MODE = "r"
+LEXICON_ENCODING = "utf-8"
 
 
 # used for good type annotation, as i've done before
@@ -34,8 +40,28 @@ def load_lexicon(lexicon_path: Path) -> Lexicon:
     lookups don't require repeated reading and parsing of the metadata file.
 
     Args:
-        lexicon_path (Path): _description_
+        lexicon_path (Path): the path to lexicon.json
 
     Returns:
-        Lexicon: _description_
+        Lexicon: a mapping of terms to their psotings file metadata
+    """
+    with lexicon_path.open(READ_MODE, encoding = LEXICON_ENCODING) as file:
+        # stored JSON structure already matches Lexicon type
+        # but cast() gets my type checker to stop bothering me
+        return cast(Lexicon, json.load(file))
+
+
+def read_term_postings(term: str, lexicon: Lexicon,
+        postings_file: BinaryIO) -> list[Posting]:
+    """
+    Reads the postings list associated with one term from the disk.
+
+    Args:
+        term (str): normalized, stemmed search term
+        lexicon (Lexicon): loaded term metadata mapping
+        postings_file (BinaryIO): the open postings file (in binary mode)
+
+    Returns:
+        list[Posting]: postings for the given term, or an empty list if the
+            the term does not exist in the lexicon
     """
