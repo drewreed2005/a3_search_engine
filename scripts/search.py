@@ -20,6 +20,9 @@ SearchResults = list[tuple[RankedDocument, str]]
 # going along with the milestone 2 specification's expectation of 5 results
 DEFAULT_RESULT_LIMIT = 5
 
+READ_BYTES_MODE = "rb"
+SEARCH_TAG = "Query: "
+
 
 def search_once(query: str, lexicon: Lexicon, postings_file: BinaryIO,
         document_urls: dict[int, str], document_count: int, 
@@ -114,6 +117,34 @@ def run_search(index_directory: Path, result_limit: int) -> None:
     print(f"Loaded {document_count:,} documents.")
     print(f"Loaded {len(lexicon):,} indexed terms.")
     print("Enter a search query. Use an empty query to quit.")
+    
+    # opening the postings path as raw byte data to use its content efficiently
+    with postings_path.open(READ_BYTES_MODE) as postings_file:
+        while True:
+            try:
+                query = input(f"\n{SEARCH_TAG}")
+            # standard end of input/file handling
+            # (can be manually inputted with CTRL + D on Mac/Linux)
+            except EOFError:
+                print()
+                break
+            
+            # detecting an empty query (break out of search engine loop)
+            # (just whitespace input is also considered an empty query)
+            if not query.strip():
+                break
+            
+            # performing the actual search
+            display_results(
+                search_once(
+                    query,
+                    lexicon,
+                    postings_file,
+                    document_urls,
+                    document_count,
+                    result_limit
+                )
+            )
 
 
 def main() -> int:
