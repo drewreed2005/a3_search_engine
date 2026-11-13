@@ -39,6 +39,8 @@ from search_engine.search.retrieval import DocumentMatches, Lexicon
 # (may be modified according to output later)
 DEFAULT_IMPORTANT_TERM_BOOST = 2.0
 
+DF_KEY = "df"
+
 # dataclass used to represent a document and its relevance score
 # (more likely overcomplicated good typing behavior because i love it)
 @dataclass(frozen = True)
@@ -46,6 +48,19 @@ class RankedDocument:
     """Represents a retrieved document and its relevance score"""
     doc_id: int
     score: float
+
+
+def _calculate_idf(document_count: int, document_frequency: int) -> float:
+    """
+    Calculates the inverse doucment frequency (IDF) of a term.
+
+    Args:
+        document_count (int): total number of indexed documents
+        document_frequency (int): number of documents containing the term
+
+    Returns:
+        float: inverse document frequency
+    """
 
 
 def _score_document(postings_by_term: dict[str, Posting],
@@ -68,6 +83,17 @@ def _score_document(postings_by_term: dict[str, Posting],
     """
     
     score = 0.0
+    
+    for term, posting in postings_by_term.items():
+        doc_id, tf, important_tf = posting
+        
+        # query term frequency allows repeated terms to add weight as described
+        query_tf = query_frequencies[term]
+        
+        # document frequency is already available
+        document_frequency = lexicon[term][DF_KEY]
+        
+        idf = _calculate_idf(document_count, document_frequency)
 
 
 def rank_documents(matches: DocumentMatches, query_terms: list[str],
