@@ -8,6 +8,14 @@ from search_engine.indexer.document import Document
 from search_engine.indexer.parser import parse_html
 from search_engine.indexer.tokenizer import count_terms
 
+# TODO:
+# the entire indexer structure should be redefined
+# - the postings list should keep in storage the total document frequency of a term
+# - positional information for each term in each document is needed
+# - a weight-specific range indication for things like the title, bold words, etc.
+#   would be preferable to raw incidence counting
+
+
 # (creating type aliases for readability)
 
 # postings per token contain:

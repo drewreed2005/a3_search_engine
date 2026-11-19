@@ -2,6 +2,19 @@
 ranking.py - functions for calculating TF-IDF scores and ordering results
 """
 
+# IT WILL TAKE A LOT MORE THOUGHT/PLANNING BEFORE I CAN REALLY START FOR M3
+# i want to learn the full algorithms/ranking functions from these upcoming lectures
+# so that i can use them here and adapt the TF-IDF implementation i already tried
+
+# the main emphasis will be on translating the changes in structure within the index
+# (using positional info, total document count instances, etc.) within the ranking,
+# and i'll need to redo the indexer/index structure to be able to start that in the
+# first place
+
+# so look back here once that first hurdle has been taken care of!
+# and then it will be time for actually implementing the final ranking stuff
+
+
 # for TF-IDF ranking, we use the very standard formula that i think was shown
 # in lecture but was at least somewhere at some point:
 #

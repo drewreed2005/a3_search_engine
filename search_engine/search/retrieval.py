@@ -2,6 +2,14 @@
 retrieval.py - functions to read postings from disk and perform Boolean AND
 '''
 
+# note: for the next steps toward M3, this will need to be adjusted to not just
+# use boolean retrieval; this will be the next big step
+
+# like i mention in the ranking details, i'll want to make changes to the
+# structure of the index moving forward with something like this
+# so i'll come back here to handle that once that's done
+
+
 # retrieval should involve the following operations:
 #   1. look up each term in lexicon.json
 #       - find each term's offset, length, df

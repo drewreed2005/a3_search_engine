@@ -41,6 +41,13 @@ COMMA_BYTE = b","
 # heap entries in the merge logic contain term, source file index, and postings
 HeapEntry = tuple[str, int, list[Posting]]
 
+# TODO:
+# see what is mentioned in builder about the restructuring
+# and consider the notes about potentially converting other file structures
+# to non-JSON storage
+# (the current forms maybe acceptable, though, especially since they'll largely
+#  be kept in memory after an initial read)
+
 
 '''
 STORAGE STRUCTURE:
